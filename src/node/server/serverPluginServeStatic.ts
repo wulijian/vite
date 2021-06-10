@@ -17,11 +17,13 @@ export const serveStaticPlugin: ServerPlugin = ({
 }) => {
   app.use(async (ctx, next) => {
     // short circuit requests that have already been explicitly handled
+    // 已经明确处理过的短路请求
     if (ctx.body || ctx.status !== 404) {
       return
     }
 
     // warn non-root references to assets under /public/
+    // 警告 对 /public/ 下的资源的非根引用, 不能直接用 发布目录下的资源
     if (ctx.path.startsWith('/public/') && isStaticAsset(ctx.path)) {
       console.error(
         chalk.yellow(
@@ -34,15 +36,18 @@ export const serveStaticPlugin: ServerPlugin = ({
     }
 
     // handle possible user request -> file aliases
+    // 处理可能的用户请求->文件别名
     const expectsHtml =
       ctx.headers.accept && ctx.headers.accept.includes('text/html')
     if (!expectsHtml) {
+      // 把request路径转换为文件路径
       const filePath = resolver.requestToFile(ctx.path)
       if (
         filePath !== ctx.path &&
         fs.existsSync(filePath) &&
         fs.statSync(filePath).isFile()
       ) {
+        //这个read是初始化的时候注挂上的, cachedRead in fsUtils
         await ctx.read(filePath)
       }
     }
